@@ -1,6 +1,6 @@
 # Pair AI
 
-Pair AI is a GPT-based pair programming REPL that assists users in answering programming-related questions and working with code snippets.
+Pair AI is a GPT-based pair programming REPL that assists coders in dealing with code. 
 
 ## Installation
 
