@@ -1,4 +1,4 @@
-# PAIR
+# PAIR (Pair AI REPL)
 
 PAIR is a GPT-based pair programming REPL that assists coders in dealing with code. 
 
