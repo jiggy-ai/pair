@@ -23,6 +23,7 @@ pair
 In the REPL, enter your code and questions, then press `Ctrl+D` to end input and receive a response from the GPT-based programming assistant.
 
 
+When PAIR detects a diff in the model output, it extracts the diff and presents it to the user.  If the user accepts the diff then the diff is applied to the referenced source file using patch.  There are probably a lot of corner cases here so I expect this functionality to be fragile.
 
 See [example.md](https://github.com/jiggy-ai/pair/blob/main/example.md) for a typical edit interaction.
 
