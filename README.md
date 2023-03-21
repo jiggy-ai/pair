@@ -23,6 +23,10 @@ pair
 In the REPL, enter your code and questions, then press `Ctrl+D` to end input and receive a response from the GPT-based programming assistant.
 
 
+
+See [example.md](https://github.com/jiggy-ai/pair/blob/main/example.md) for a typical edit interaction.
+
+
 ### Commands
 
 - `/file <path>`: Load a file's content into the model context by providing its path.
@@ -40,5 +44,3 @@ Example:
 
 - [chatstack](https://github.com/jiggy-ai/chatstack)
 - prompt_toolkit
-
-```
