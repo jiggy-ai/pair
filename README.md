@@ -22,6 +22,20 @@ pair
 
 In the REPL, enter your code and questions, then press `Ctrl+D` to end input and receive a response from the GPT-based programming assistant.
 
+
+### Commands
+
+- `/file <path>`: Load a file's content into the model context by providing its path.
+- `/cd <path>`: Change the current working directory to the specified path.
+
+To use the special commands, simply type the command followed by the appropriate path or command in the REPL.
+
+Example:
+
+```
+/file /path/to/your/file.py
+/cd /path/to/your/directory
+```
 ## Dependencies
 
 - [chatstack](https://github.com/jiggy-ai/chatstack)
