@@ -1,9 +1,12 @@
-Pair AI Programming REPL
+Pair AI Programming REPL  
+Enter your code, questions, or /file <path>, or /cd <path>:  
+**/file pair.py**  
+loaded 763 tokens from pair.py into context  
+
 Enter your code, questions, or /file <path>, or /cd <path>:
-/file pair.py
-loaded 763 tokens from pair.py into context
-Enter your code, questions, or /file <path>, or /cd <path>:
-lets modify this to take multiline input that submits with control-d
+
+**lets modify this to take multiline input that submits with control-d**
+    
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To modify the code to accept multiline input and submit with Control-D, you can update the `repl()` function as follows:
 
@@ -76,11 +79,13 @@ def repl():
 ```
 
 Now, the REPL will accept multiline input and submit it when you press Control-D.
+    
 (847 + 602 tokens = $0.0615)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Enter your code, questions, or /file <path>, or /cd <path>:
-can you just output the diff?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    
+Enter your code, questions, or /file <path>, or /cd <path>:    
+**can you just output the diff?**  
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   
 Certainly! Here's the diff for the changes in the `repl()` function:
 
 ```diff
@@ -105,6 +110,10 @@ Certainly! Here's the diff for the changes in the `repl()` function:
   
           ...
 ```
+    
+These changes add a new key binding for Control-D to exit the input, set the `multiline` parameter to `True` in the `PromptSession` initialization, and pass the `key_bindings` to the `session.prompt()` method.
+    
+(1462 + 254 tokens = $0.0591)
 
 These changes add a new key binding for Control-D to exit the input, set the `multiline` parameter to `True` in the `PromptSession` initialization, and pass the `key_bindings` to the `session.prompt()` method.
 (1462 + 254 tokens = $0.0591)
