@@ -25,6 +25,6 @@ In the REPL, enter your code and questions, then press `Ctrl+D` to end input and
 ## Dependencies
 
 - [chatstack](https://github.com/jiggy-ai/chatstack)
-
+- prompt_toolkit
 
 ```
