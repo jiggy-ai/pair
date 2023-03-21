@@ -1,11 +1,13 @@
 import openai
 import os
 import sys
-from chatstack import ChatContext
+from chatstack import ChatContext, UserMessage
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import Completer, Completion, PathCompleter, NestedCompleter, WordCompleter
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
+from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit import print_formatted_text
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -16,7 +18,7 @@ BASE_PROMPT += "Provide helpful answers to the user. If you need more informatio
 BASE_PROMPT += "then ask for the definition of the code and it will be provided."
 
 
-cs = ChatContext(min_response_tokens=800,  # leave room for at least this much
+chat_ctx = ChatContext(min_response_tokens=800,  # leave room for at least this much
                  max_response_tokens=None, # don't limit the model's responses
                  max_context_assistant_messages=20,
                  max_context_user_messages=20,    
@@ -46,10 +48,10 @@ def repl():
         event.app.current_buffer.complete_next()
 
     session = PromptSession(completer=custom_completer, key_bindings=bindings)
-
+    print("Pair AI Programming REPL")
     while True:
         # Read user input with custom autocompletion
-        user_input = session.prompt("Enter your code, questions, or /file <path>, or /cd <path>: ")
+        user_input = session.prompt("Enter your code, questions, or /file <path>, or /cd <path>:\n")
 
         # Check for the special /file command
         if user_input.startswith('/file'):
@@ -58,7 +60,10 @@ def repl():
                 with open(file_path, 'r') as file:
                     user_code =  file.read()
                     user_input = f'{file_path}:\n{user_code}\n'
-                    print(f"loaded {len(user_input)} bytes from {file_path}")
+                    msg = UserMessage(text=user_input)
+                    chat_ctx.add_message(msg)
+                    print(f"loaded {msg.tokens} tokens from {file_path} into context")
+                    continue
             except FileNotFoundError:
                 print(f"File not found: {file_path}")
                 continue
@@ -77,8 +82,8 @@ def repl():
             continue  # Add this line to skip processing the /cd command as a user input for assistance
             
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        cr = cs.user_message(user_input, stream=True)
-        print(f"({cr.input_tokens} + {cr.response_tokens} tokens = (${cr.price:.4f}))")
+        cr = chat_ctx.user_message(user_input, stream=True)
+        print_formatted_text(FormattedText([("fg:olive", f"({cr.input_tokens} + {cr.response_tokens} tokens = ${cr.price:.4f})")]))
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
 
