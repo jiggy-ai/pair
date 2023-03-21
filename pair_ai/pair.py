@@ -8,6 +8,8 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit import print_formatted_text
+import re
+import subprocess
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -15,7 +17,9 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 BASE_PROMPT = "You are a programming assistant. "
 BASE_PROMPT += "The below are portions of code the user is working on as well as questions from the user. "
 BASE_PROMPT += "Provide helpful answers to the user. If you need more information on code that is not included, "
-BASE_PROMPT += "then ask for the definition of the code and it will be provided."
+BASE_PROMPT += "then ask for the definition of the code and it will be provided.  "
+BASE_PROMPT += "When making code changes output them as a full diff (including filename and line numbers) unless the user asks for a full file or a function."
+
 
 
 chat_ctx = ChatContext(min_response_tokens=800,  # leave room for at least this much
@@ -48,10 +52,10 @@ def repl():
         event.app.current_buffer.complete_next()
 
     session = PromptSession(completer=custom_completer, key_bindings=bindings)
-    print("Pair AI Programming REPL")
+    print_formatted_text(FormattedText([("fg:violet", "Pair AI Programming REPL  ")]))
     while True:
         # Read user input with custom autocompletion
-        user_input = session.prompt("Enter your code, questions, or /file <path>, or /cd <path>:\n")
+        user_input = session.prompt("Enter your code, questions, or /file <path>, or /cd <path>:  \n")
 
         # Check for the special /file command
         if user_input.startswith('/file'):
@@ -62,7 +66,7 @@ def repl():
                     user_input = f'{file_path}:\n{user_code}\n'
                     msg = UserMessage(text=user_input)
                     chat_ctx.add_message(msg)
-                    print(f"loaded {msg.tokens} tokens from {file_path} into context")
+                    print(f"Loaded {msg.tokens} tokens from {file_path} into context  ")
                     continue
             except FileNotFoundError:
                 print(f"File not found: {file_path}")
@@ -81,11 +85,34 @@ def repl():
                 continue
             continue  # Add this line to skip processing the /cd command as a user input for assistance
             
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
         cr = chat_ctx.user_message(user_input, stream=True)
-        print_formatted_text(FormattedText([("fg:olive", f"({cr.input_tokens} + {cr.response_tokens} tokens = ${cr.price:.4f})")]))
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print_formatted_text(FormattedText([("fg:olive", f"({cr.input_tokens} + {cr.response_tokens} tokens = ${cr.price:.4f})  ")]))
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
+        # check response text for a diff 
+        diff_match = re.search(r'```diff(.*?)```', cr.text, re.DOTALL)
+        if diff_match:
+            diff = diff_match.group(1).strip()
+            print_formatted_text(FormattedText([("fg:violet", "Found diff in model output:\n")]))
+            print_formatted_text(FormattedText([("fg:darkred", diff)]))
 
+            # Ask the user if they accept the diff
+            accept_diff = input("Do you accept the diff? (yes/no): ").lower()
+            if accept_diff == 'yes':
+                try:
+                    with open("temp_diff.patch", "w") as temp_diff_file:
+                        temp_diff_file.write(diff)
+
+                    subprocess.run(["patch", "-p1", "-i", "temp_diff.patch"], check=True)
+                    os.remove("temp_diff.patch")
+
+                    print("Diff applied successfully.")
+                except Exception as e:
+                    print(f"Error applying diff: {e}")
+            else:
+                print_formatted_text(FormattedText([("fg:red", "Diff not applied.")]))
+        else:
+            print_formatted_text(FormattedText([("fg:red", "No diff found in the response.")]))
 
                 
 
