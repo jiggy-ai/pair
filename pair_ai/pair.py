@@ -27,10 +27,11 @@ cs = ChatContext(min_response_tokens=800,  # leave room for at least this much
 
 
 def repl():
-    file_completer = WordCompleter(['/file'])
+    file_completer = WordCompleter(['/file', '/cd'])
     path_completer = PathCompleter(only_directories=False)
     custom_completer = NestedCompleter.from_nested_dict({
-        '/file': path_completer
+        '/file': path_completer,
+        '/cd': path_completer
     })
 
     # Create custom key bindings
@@ -48,7 +49,7 @@ def repl():
 
     while True:
         # Read user input with custom autocompletion
-        user_input = session.prompt("Enter your code, questions, or /file <path>: ")
+        user_input = session.prompt("Enter your code, questions, or /file <path>, or /cd <path>: ")
 
         # Check for the special /file command
         if user_input.startswith('/file'):
@@ -61,7 +62,20 @@ def repl():
             except FileNotFoundError:
                 print(f"File not found: {file_path}")
                 continue
-
+        # Check for the special /cd command
+        elif user_input.startswith('/cd'):
+            dir_path = user_input[4:].strip()
+            try:
+                os.chdir(dir_path)
+                print(f"Changed directory to: {os.getcwd()}")
+            except FileNotFoundError:
+                print(f"Directory not found: {dir_path}")
+                continue
+            except NotADirectoryError:
+                print(f"Not a directory: {dir_path}")
+                continue
+            continue  # Add this line to skip processing the /cd command as a user input for assistance
+            
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         cr = cs.user_message(user_input, stream=True)
         print(f"({cr.input_tokens} + {cr.response_tokens} tokens = (${cr.price:.4f}))")
