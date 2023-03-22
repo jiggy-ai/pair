@@ -18,7 +18,8 @@ BASE_PROMPT = "You are a programming assistant. "
 BASE_PROMPT += "The below are portions of code the user is working on as well as questions from the user. "
 BASE_PROMPT += "Provide helpful answers to the user. If you need more information on code that is not included, "
 BASE_PROMPT += "then ask for the definition of the code and it will be provided.  "
-BASE_PROMPT += "When making code changes output them as a full diff (including filename and line numbers) unless the user asks for a full file or a function."
+BASE_PROMPT += "When making code changes output them as diff compatible output that can be processed with patch command "
+BASE_PROMPT += "(including filename and line numbers) unless the user asks for a full file or a function."
 
 
 
@@ -33,7 +34,6 @@ chat_ctx = ChatContext(min_response_tokens=800,  # leave room for at least this 
 
 
 def repl():
-    file_completer = WordCompleter(['/file', '/cd'])
     path_completer = PathCompleter(only_directories=False)
     custom_completer = NestedCompleter.from_nested_dict({
         '/file': path_completer,
