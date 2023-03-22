@@ -22,7 +22,7 @@ After installing the package, you can use the `pair` command in your terminal or
 pair
 ```
 
-In the REPL, enter your code and questions, then press `Ctrl+D` to end input and receive a response from the GPT-based programming assistant.
+In the REPL, enter your questions or guidance or /file to input local files into the context.
 
 
 When PAIR detects a diff in the model output, it extracts the diff and presents it to the user.  If the user accepts the diff then the diff is applied to the referenced source file using patch.  There are probably a lot of corner cases here so I expect this functionality to be fragile.
