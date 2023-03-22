@@ -1,6 +1,6 @@
 # PAIR (Pair AI REPL)
 
-PAIR is an AI-powered pair programming REPL that leverages GPT-4 to assist developers in writing and understanding code. It provides a seamless interactive environment where users can input code, ask questions, and receive helpful answers from the GPT-based programming assistant. The REPL supports special commands for loading files and changing directories, and it can propose code changes as context diffs that can be processed automatically. Users have the option to accept or reject the proposed changes, making PAIR a flexible and powerful tool for developers.
+PAIR is an AI-powered coding assistance REPL that pairs GPT-4 with you the developer to augment the best of both human and AI intelligence. It provides an interactive environment where users can input existing code, ask questions about the code or other open source projects or dependencies, receive helpful answers from the GPT-based programming assistant, add new code or refactor existing code, etc. The REPL supports special commands for loading files and changing directories, and it can propose code changes as context diffs that can be processed automatically. Users have the option to accept or reject the proposed changes, making PAIR a flexible and powerful tool for developers.
 
 ![Example](https://github.com/jiggy-ai/pair/blob/main/example.gif)
 
