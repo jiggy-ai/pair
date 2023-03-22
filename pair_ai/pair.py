@@ -45,7 +45,12 @@ def repl():
 
     @bindings.add(Keys.Tab)
     def _(event):
-        event.app.current_buffer.complete_next()
+        b = event.app.current_buffer
+        if b.complete_state:
+            b.complete_next()
+        else:
+            b.start_completion(select_first=True)
+
 
     @bindings.add(Keys.Right)
     def _(event):
