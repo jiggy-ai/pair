@@ -50,3 +50,7 @@ Example:
 - [chatstack](https://github.com/jiggy-ai/chatstack)
 - prompt_toolkit
 
+## Community Discussions
+
+[![](https://dcbadge.vercel.app/api/server/yNNvXuRqjH?compact=true&style=flat)](https://discord.gg/yNNvXuRqjH)
+
