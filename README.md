@@ -6,7 +6,7 @@ The REPL supports special commands for loading files and changing directories, a
 
 ![Example](https://github.com/jiggy-ai/pair/blob/main/example.gif)
 
-Currently we are using GPT-4 to help build PAIR, and am open to other collaborators who are similarly inclined to eat their own dogfood. 
+Currently we are using GPT-4 to help build PAIR, and are very open to other collaborators who are similarly inclined to eat their own dogfood. 
 
 ## Installation
 
