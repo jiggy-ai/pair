@@ -2,3 +2,6 @@
 pair_ai.egg-info
 dist
 *.pyc
+*.orig
+*.rej
+*.patch

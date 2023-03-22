@@ -24,17 +24,17 @@ BASE_PROMPT += "(including filename and line numbers) unless the user asks for a
 
 
 chat_ctx = ChatContext(min_response_tokens=800,  # leave room for at least this much
-                 max_response_tokens=None, # don't limit the model's responses
-                 max_context_assistant_messages=20,
-                 max_context_user_messages=20,    
-                 model="gpt-4",
-                 temperature=0.1,
-                 base_system_msg_text=BASE_PROMPT)
+                       max_response_tokens=None, # don't limit the model's responses
+                       max_context_assistant_messages=20,
+                       max_context_user_messages=20,    
+                       model="gpt-4",
+                       temperature=0.1,
+                       base_system_msg_text=BASE_PROMPT)
     
 
 
 def repl():
-    path_completer = PathCompleter(only_directories=False)
+    path_completer = PathCompleter(only_directories=False, expanduser=True)
     custom_completer = NestedCompleter.from_nested_dict({
         '/file': path_completer,
         '/cd': path_completer
@@ -80,7 +80,7 @@ def repl():
         elif user_input.startswith('/cd'):
             dir_path = user_input[4:].strip()
             try:
-                os.chdir(dir_path)
+                os.chdir(os.path.expanduser(dir_path))
                 print(f"Changed directory to: {os.getcwd()}")
             except FileNotFoundError:
                 print(f"Directory not found: {dir_path}")
