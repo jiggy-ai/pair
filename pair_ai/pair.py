@@ -62,6 +62,9 @@ def repl():
         # Read user input with custom autocompletion
         user_input = session.prompt("Enter your code, questions, or /file <path>, or /cd <path>:  \n")
 
+        if user_input.strip() == '':
+            continue
+
         # Check for the special /file command
         if user_input.startswith('/file'):
             file_path = user_input[6:].strip()
