@@ -50,6 +50,14 @@ Example:
 - [chatstack](https://github.com/jiggy-ai/chatstack)
 - prompt_toolkit
 
+The following environment variables are used to inject credentials and other required configuration for the major dependencies:
+
+**OpenAI**
+
+* OPENAI_API_KEY # your OpenAI API key
+* PAIR_MODEL     # one of "gpt-3.5-turbo" or "gpt-4", default to gpt-4
+
+
 ## Community Discussions
 
 [![](https://dcbadge.vercel.app/api/server/yNNvXuRqjH?compact=true&style=flat)](https://discord.gg/yNNvXuRqjH)

@@ -27,7 +27,7 @@ chat_ctx = ChatContext(min_response_tokens=800,  # leave room for at least this 
                        max_response_tokens=None, # don't limit the model's responses
                        max_context_assistant_messages=20,
                        max_context_user_messages=20,    
-                       model="gpt-4",
+                       model=os.environ.get("PAIR_MODEL", "gpt-4"),
                        temperature=0.1,
                        base_system_msg_text=BASE_PROMPT)
     
