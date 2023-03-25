@@ -34,8 +34,10 @@ See [example.md](https://github.com/jiggy-ai/pair/blob/main/example.md) for a ty
 
 ### Commands
 
+- `help` - Display this help message
 - `/file <path>`: Load a file's content into the model context by providing its path.
 - `/cd <path>`: Change the current working directory to the specified path.
+- `/status`:  - Show the status of the OPENAI_API_KEY and the model being used
 
 To use the special commands, simply type the command followed by the appropriate path or command in the REPL.
 

@@ -31,7 +31,13 @@ chat_ctx = ChatContext(min_response_tokens=800,  # leave room for at least this 
                        temperature=0.1,
                        base_system_msg_text=BASE_PROMPT)
     
-
+def print_help():
+    print("Available commands:")
+    print("/file <path> - Load a file into the context")
+    print("/cd <path> - Change the current working directory")
+    print("/status - Show the status of the OPENAI_API_KEY and the model being used")
+    print("/help - Display this help message")
+    
 
 def repl():
     path_completer = PathCompleter(only_directories=False, expanduser=True)
@@ -60,7 +66,7 @@ def repl():
     print_formatted_text(FormattedText([("fg:violet", "Pair AI Programming REPL  ")]))
     while True:
         # Read user input with custom autocompletion
-        user_input = session.prompt("Enter your code, questions, or /file <path>, or /cd <path>:  \n")
+        user_input = session.prompt("Enter your code, questions, or /file <path>,  or /help to see all commands:  \n")
 
         if user_input.strip() == '':
             continue
@@ -98,7 +104,24 @@ def repl():
                 print(f"Not a directory: {dir_path}")
                 continue
             continue  # Add this line to skip processing the /cd command as a user input for assistance
-            
+        # Check for the special /status command
+        elif user_input.startswith('/status'):
+            api_key_status = "set" if openai.api_key else "not set"
+            model_name = chat_ctx.model
+            try:
+                openai.Model.retrieve(model_name)
+                model_status = "available"
+            except Exception as e:
+                model_status = f"unavailable ({e})"
+
+            print(f"OPENAI_API_KEY: {api_key_status}")
+            print(f"Model: {model_name} ({model_status})")
+            continue  # Add this line to skip processing the /status command as a user input for assistance
+        # Check for the special /help command
+        elif user_input.startswith('/help'):
+            print_help()
+            continue  # Add this line to skip processing the /help command as a user input for assistance            
+        
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
         cr = chat_ctx.user_message(user_input, stream=True)
         print_formatted_text(FormattedText([("fg:olive", f"({cr.input_tokens} + {cr.response_tokens} tokens = ${cr.price:.4f})  ")]))
