@@ -79,6 +79,12 @@ def repl():
             except FileNotFoundError:
                 print(f"File not found: {file_path}")
                 continue
+            except IsADirectoryError:
+                print(f"Path is a directory, not a file: {file_path}")
+                continue
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                continue
         # Check for the special /cd command
         elif user_input.startswith('/cd'):
             dir_path = user_input[4:].strip()
