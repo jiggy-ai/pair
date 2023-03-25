@@ -10,7 +10,7 @@ from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit import print_formatted_text
 import re
 import subprocess
-from extract import url_to_text
+from .extract import url_to_text
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
