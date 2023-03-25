@@ -10,6 +10,7 @@ from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit import print_formatted_text
 import re
 import subprocess
+from extract import url_to_text
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -35,6 +36,7 @@ def print_help():
     print("Available commands:")
     print("/file <path> - Load a file into the context")
     print("/cd <path> - Change the current working directory")
+    print("/url <url> - Load the content of a URL into the context")
     print("/status - Show the status of the OPENAI_API_KEY and the model being used")
     print("/help - Display this help message")
     
@@ -43,7 +45,8 @@ def repl():
     path_completer = PathCompleter(only_directories=False, expanduser=True)
     custom_completer = NestedCompleter.from_nested_dict({
         '/file': path_completer,
-        '/cd': path_completer
+        '/cd': path_completer,
+        '/url': WordCompleter(['http://', 'https://']),
     })
 
     # Create custom key bindings
@@ -103,7 +106,21 @@ def repl():
             except NotADirectoryError:
                 print(f"Not a directory: {dir_path}")
                 continue
-            continue  # Add this line to skip processing the /cd command as a user input for assistance
+            continue  # Add this line to skip processing the /cd command as a user input for assistance         
+        # Check for the special /url command
+        elif user_input.startswith('/url'):
+             url = user_input[5:].strip()
+             try:
+                 content, title, language = url_to_text(url)
+                 user_input = f'{url}:\n{content}\n'
+                 msg = UserMessage(text=user_input)
+                 chat_ctx.add_message(msg)
+                 print(content)
+                 print(f"Loaded {msg.tokens} tokens from {url} into context  ")
+                 continue
+             except Exception as e:
+                 print(f"Error fetching URL: {e}")
+                 continue
         # Check for the special /status command
         elif user_input.startswith('/status'):
             api_key_status = "set" if openai.api_key else "not set"
