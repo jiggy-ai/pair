@@ -11,6 +11,7 @@ import urllib.parse
 from .github_api import github_readme_text
 from .pdf_text import pdf_text
 from .exceptions import *
+from .retry import retry
     
 user_agent = "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 
@@ -35,10 +36,6 @@ def get_language(html):
     except:
         return ""
 
-            
-
-from retry import retry
-    
 @retry(tries=5)    
 def get_url_text(url):
     """
