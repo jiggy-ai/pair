@@ -5,3 +5,4 @@ dist
 *.orig
 *.rej
 *.patch
+build/*
