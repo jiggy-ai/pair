@@ -148,7 +148,10 @@ def repl():
             continue  # Add this line to skip processing the /help command as a user input for assistance            
         
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
-        cr = chat_ctx.user_message(user_input, stream=True)
+        for cr in chat_ctx.user_message_stream(user_input):
+            sys.stdout.write(cr.delta)
+            sys.stdout.flush()
+        
         print_formatted_text(FormattedText([("fg:olive", f"({cr.input_tokens} + {cr.response_tokens} tokens = ${cr.price:.4f})  ")]))
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
         # check response text for a diff 
