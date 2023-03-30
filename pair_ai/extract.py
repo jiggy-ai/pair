@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 from readability import Document    # https://github.com/buriy/python-readability
 import requests
 import urllib.parse
+import json
 
 from .github_api import github_readme_text
 from .pdf_text import pdf_text
@@ -49,6 +50,9 @@ def get_url_text(url):
         raise NetworkError(f"Unable to get URL ({resp.status_code})")
 
     CONTENT_TYPE = resp.headers['Content-Type']
+
+    if 'json' in CONTENT_TYPE:
+        return str(resp.content), "", ""
     
     if 'pdf' in CONTENT_TYPE:
         text, title, language = pdf_text(resp.content)
@@ -73,7 +77,7 @@ def get_url_text(url):
 
 
 def url_to_text(url):
-    logger.info("url_to_text: "+url)
+    #logger.info("url_to_text: "+url)
     HOPELESS = ["youtube.com",
                 "www.youtube.com"]
     if urllib.parse.urlparse(url).netloc in HOPELESS:

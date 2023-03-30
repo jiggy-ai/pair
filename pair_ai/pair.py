@@ -10,9 +10,12 @@ from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit import print_formatted_text
 import re
 import subprocess
+import argparse
+from .context_loader import load_files_and_urls
 from .extract import url_to_text
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 
 BASE_PROMPT = "You are a programming assistant. "
@@ -39,6 +42,12 @@ def print_help():
     print("/status - Show the status of the OPENAI_API_KEY and the model being used")
     print("/help - Display this help message")
     
+
+parser = argparse.ArgumentParser(description="Load files and URLs into the context")
+parser.add_argument("items", nargs="*", help="List of files and URLs to load into the context")
+args = parser.parse_args()
+load_files_and_urls(chat_ctx, args.items)
+
 
 def repl():
     path_completer = PathCompleter(only_directories=False, expanduser=True)
