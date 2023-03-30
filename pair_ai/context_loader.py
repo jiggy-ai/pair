@@ -15,7 +15,7 @@ def load_files_and_urls(chat_ctx, items):
                 user_input = f'{item}:\n{content}\n'
                 msg = UserMessage(text=user_input)
                 chat_ctx.add_message(msg)
-                print(f"Loaded {msg.tokens} tokens from {item} into context")
+                print(f"Loaded {item} into context ({msg.tokens} tokens)")
             except Exception as e:
                 print(f"Error fetching URL: {e}")
         else:
@@ -25,7 +25,7 @@ def load_files_and_urls(chat_ctx, items):
                     user_input = f'{item}:\n{user_code}\n'
                     msg = UserMessage(text=user_input)
                     chat_ctx.add_message(msg)
-                    print(f"Loaded {msg.tokens} tokens from {item} into context")
+                    print(f"Loaded {item} into context ({msg.tokens} tokens)")
             except FileNotFoundError:
                 print(f"File not found: {item}")
             except IsADirectoryError:

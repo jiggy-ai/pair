@@ -91,7 +91,7 @@ def repl():
                     user_input = f'{file_path}:\n{user_code}\n'
                     msg = UserMessage(text=user_input)
                     chat_ctx.add_message(msg)
-                    print(f"Loaded {msg.tokens} tokens from {file_path} into context  ")
+                    print(f"Loaded {file_path} into context ({msg.tokens} tokens)")
                     continue
             except FileNotFoundError:
                 print(f"File not found: {file_path}")
@@ -124,7 +124,7 @@ def repl():
                  msg = UserMessage(text=user_input)
                  chat_ctx.add_message(msg)
                  print(content)
-                 print(f"Loaded {msg.tokens} tokens from {url} into context  ")
+                 print(f"Loaded {url} into context ({msg.tokens} tokens)")
                  continue
              except Exception as e:
                  print(f"Error fetching URL: {e}")
