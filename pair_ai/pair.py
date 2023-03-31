@@ -28,8 +28,7 @@ BASE_PROMPT += "then ask for the definition of the code and it will be provided.
 
 chat_ctx = ChatContext(min_response_tokens=800,  # leave room for at least this much
                        max_response_tokens=None, # don't limit the model's responses
-                       max_context_assistant_messages=20,
-                       max_context_user_messages=20,    
+                       chat_context_messages=20,
                        model=os.environ.get("PAIR_MODEL", "gpt-4"),
                        temperature=0.1,
                        base_system_msg_text=BASE_PROMPT)
