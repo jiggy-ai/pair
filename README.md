@@ -21,15 +21,14 @@ pip install pair_ai
 After installing the package, you can use the `pair` command in your terminal or command prompt to start the REPL:
 
 ```bash
-pair
+pair [file1] [...]
 ```
+
+One or more filenames can be specified on the command line to load into the model context.  This tends to be more convenient than using the /file command in the repl loop.
+
 
 In the REPL, enter your questions or guidance or /file to input local files into the context.
 
-
-When PAIR detects a diff in the model output, it extracts the diff and presents it to the user.  If the user accepts the diff then the diff is applied to the referenced source file using patch.  There are probably a lot of corner cases here so I expect this functionality to be fragile.
-
-See [example.md](https://github.com/jiggy-ai/pair/blob/main/example.md) for a typical edit interaction.
 
 
 ### Commands

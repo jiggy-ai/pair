@@ -151,7 +151,7 @@ def repl():
             sys.stdout.write(cr.delta)
             sys.stdout.flush()
         
-        print_formatted_text(FormattedText([("fg:olive", f"({cr.input_tokens} + {cr.response_tokens} tokens = ${cr.price:.4f})  ")]))
+        print_formatted_text(FormattedText([("fg:olive", f"\n({cr.input_tokens} + {cr.response_tokens} tokens = ${cr.price:.4f})  ")]))
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
         # check response text for a diff 
         diff_match = re.search(r'```diff(.*?)```', cr.text, re.DOTALL)
