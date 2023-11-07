@@ -25,11 +25,13 @@ BASE_PROMPT += "then ask for the definition of the code and it will be provided.
 
 
 
+PAIR_MODEL = os.environ.get("PAIR_MODEL", "gpt-4")
+print("PAIR_MODEL =", PAIR_MODEL)
 
 chat_ctx = ChatContext(min_response_tokens=800,  # leave room for at least this much
                        max_response_tokens=None, # don't limit the model's responses
                        chat_context_messages=20,
-                       model=os.environ.get("PAIR_MODEL", "gpt-4"),
+                       model=PAIR_MODEL,
                        temperature=0.1,
                        base_system_msg_text=BASE_PROMPT)
     
