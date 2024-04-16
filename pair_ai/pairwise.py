@@ -14,10 +14,10 @@ class Task(BaseModel):
     description      : str                       = Field(description="The detailed description of the task we are performing.")
     filenames        : list[str]                 = Field(description="The full list of existing file names with relevant content that are available to read to help accomplish the task.")
     work_summary     : str                       = Field(description="A summary of the work we have done so far to try to accomplish the task.")
-    notes            : Optional[str]             = Field(description="Any notes about the task that might be helpful to remember.")
-    next_step_hint   : Optional[str]             = Field(description="A description of a possible next step to take to accomplish the task.")
-    read_files       : Optional[dict[str, str]]  = Field(description="A dictionary of filenames and their content that were just read to help accomplish the next step.")
-    coworker_message : Optional[str]             = Field(description="A message from a coworker to help accomplish the task.")
+    notes            : Optional[str]             = Field(None, description="Any notes about the task that might be helpful to remember.")
+    next_step_hint   : Optional[str]             = Field(None, description="A description of a possible next step to take to accomplish the task.")
+    read_files       : Optional[dict[str, str]]  = Field(None, description="A dictionary of filenames and their content that were just read to help accomplish the next step.")
+    coworker_message : Optional[str]             = Field(None, description="A message from a coworker to help accomplish the task.")
     step             : int                       = Field(description="The number of steps we have taken so far to try to accomplish the task.")
 
     def __str__(self) -> str:
@@ -42,13 +42,13 @@ class CreateFile(BaseModel):
 
     
 class NextStep(BaseModel):
-    create_file      : Optional[CreateFile] = Field(description="An optional file to create to help accomplish the task.")    
+    create_file      : Optional[CreateFile] = Field(None, description="An optional file to create to help accomplish the task.")    
     work_summary     : str                  = Field(description="The updated summary of the work we have done so far to accomplish the task, not including files we have read.")    
-    notes            : Optional[str]        = Field(description="Any notes about the task that might be helpful to remember.")    
-    read_filenames   : Optional[list[str]]  = Field(description="A list of filenames to read to help perform the next step.")    
-    ask_question     : Optional[str]        = Field(description="An optional question to ask a coworker to help accomplish the task. Use this option if you are not sure what the next step is.")
-    next_step_hint   : Optional[str]        = Field(description="A description of the anticipated next step to take to accomplish the task.")
-    task_done        : Optional[bool]       = Field(description="true if the task is complete")
+    notes            : Optional[str]        = Field(None, description="Any notes about the task that might be helpful to remember.")    
+    read_filenames   : Optional[list[str]]  = Field(None, description="A list of filenames to read to help perform the next step.")    
+    ask_question     : Optional[str]        = Field(None, description="An optional question to ask a coworker to help accomplish the task. Use this option if you are not sure what the next step is.")
+    next_step_hint   : Optional[str]        = Field(None, description="A description of the anticipated next step to take to accomplish the task.")
+    task_done        : Optional[bool]       = Field(None, description="true if the task is complete")
     
     def __str__(self):
         outstr = "\nPairWise Next Step:\n\n"
