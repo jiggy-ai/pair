@@ -12,16 +12,24 @@ import re
 import subprocess
 import argparse
 from .context_loader import load_files_and_urls
-from .extract import url_to_text
+from .extract import url_to_text, extract_filename_code_blocks
+import random
+import string
+import datetime
+import shutil
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 
-BASE_PROMPT = "You are a programming assistant. "
-BASE_PROMPT += "The below are portions of code the user is working on as well as questions from the user. "
+BASE_PROMPT =  "You are a programming assistant. "
+BASE_PROMPT += "Below are portions of code the user is working on as well as questions from the user. "
 BASE_PROMPT += "Provide helpful answers to the user. If you need more information on code that is not included, "
-BASE_PROMPT += "then ask for the definition of the code and it will be provided.  "
+BASE_PROMPT += "then ask for the contents of the code file or show the user how to cat the file. "
+BASE_PROMPT += "When generating example code that takes an input file, have the main code take the filename as a command line argument. "
+BASE_PROMPT += "When outputing code blocks, please include a filename before the code block in markdown bold like **filename.py** .  "
+BASE_PROMPT += "When making changes to files, please output the entire file unless the file is very large. "
+BASE_PROMPT += "If the file is too large to output in its entirety, please be sure to include 3 lines before and after each edit. "
 
 
 
@@ -48,6 +56,12 @@ parser = argparse.ArgumentParser(description="Load files and URLs into the conte
 parser.add_argument("items", nargs="*", help="List of files and URLs to load into the context")
 args = parser.parse_args()
 load_files_and_urls(chat_ctx, args.items)
+
+
+
+
+
+
 
 
 def repl():
@@ -155,31 +169,39 @@ def repl():
         
         print_formatted_text(FormattedText([("fg:olive", f"\n({cr.input_tokens} + {cr.response_tokens} tokens = ${cr.price:.4f})  ")]))
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
-        # check response text for a diff 
-        diff_match = re.search(r'```diff(.*?)```', cr.text, re.DOTALL)
-        if diff_match:
-            diff = diff_match.group(1).strip()
-            print_formatted_text(FormattedText([("fg:violet", "Found diff in model output:\n")]))
-            print_formatted_text(FormattedText([("fg:darkred", diff)]))
 
-            # Ask the user if they accept the diff
-            accept_diff = input("Do you accept the diff? (yes/no): ").lower()
-            if accept_diff == 'yes':
-                try:
-                    with open("temp_diff.patch", "w") as temp_diff_file:
-                        temp_diff_file.write(diff)
+        # extract code blocks from completion text along with filename
+        filename_code_blocks = extract_filename_code_blocks(cr.text)
+        skipped = 0
+        for filename, codeblock, filetype in filename_code_blocks:
+            if filename is None:
+                ## consider saving unnamed code snippets
+                skipped += 1
+                continue
+            
+            if os.path.exists(filename):
+                if os.path.getsize(filename) > len(codeblock):
+                    # new content is smaller than old content, so don't overwrite
+                    filename += ".edit"
+                else:
+                    # will overwrite
+                    # create backup of original file
+                    dtstr = datetime.datetime.now().strftime("%Y%m%d_%H%MS")
+                    shutil.copy2(filename, filename + f'.pair-{dtstr}')
 
-                    subprocess.run(["patch", "-p1", "-i", "temp_diff.patch"], check=True)
-                    os.remove("temp_diff.patch")
-
-                    print("Diff applied successfully.")
-                except Exception as e:
-                    print(f"Error applying diff: {e}")
-            else:
-                print_formatted_text(FormattedText([("fg:red", "Diff not applied.")]))
-        else:
-            print_formatted_text(FormattedText([("fg:red", "No diff found in the response.")]))
-
+            if '/' in filename:
+                # brutally create directories that dont already exist
+                os.makedirs("/".join(filename.split('/')[:-1]), exist_ok=True)
+            try:
+                with open(filename, 'w') as fp:
+                    fp.write(codeblock)
+                    print_formatted_text(FormattedText([ ("fg:violet", "extracted "), ("fg:chocolate", filetype), 
+                                                         ("fg:violet", " block as "), ("fg:chocolate", filename) ]))
+            except Exception as e:
+                print_formatted_text(FormattedText([ ("fg:violet", "error extracting filename")]))
+        if skipped:
+            print_formatted_text(FormattedText([ ("fg:violet", f"skipped unnamed code snippet{'s' if skipped > 1 else ''}")]))
+                
                 
 
 

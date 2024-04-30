@@ -8,6 +8,7 @@ from readability import Document    # https://github.com/buriy/python-readabilit
 import requests
 import urllib.parse
 import json
+import re
 
 from .github_api import github_readme_text
 from .pdf_text import pdf_text
@@ -93,6 +94,39 @@ def url_to_text(url):
 
     #logger.debug("url_to_text: "+text)
     return text, title, language
+
+
+
+
+def extract_filename_code_blocks(text):
+    #pattern = r"(?:\*\*(\S+)\*\*|##\s*(\S+))?\s*```(\w+)?(?:\s+)?(.*?)```"
+    pattern = r"(?:\*\*(\S+)\*\*:?|##\s*(\S+))?\s*```(\w+)?(?:\s+)?(.*?)```"
+    matches = re.findall(pattern, text, re.DOTALL)
+    
+    # Generate tuples (filename, code_block, file_type), handling filename preprocessing
+    results = []
+    for match in matches:
+        # Normalizing filename: match[0] is **filename.ext**, match[1] is ## filename.ext
+        filename = match[0] or match[1] or None
+        file_type = match[2] if match[2] is not None else 'unknown'  # Set 'unknown' if no file type specified
+        code_block = match[3].strip()
+        results.append((filename, code_block, file_type))
+    
+    return results
+
+
+
+def extract_code_blocks_with_type(text) -> (str, str):
+    pattern = r"```(\w+)?\s*(.*?)```"
+    matches = re.findall(pattern, text, re.DOTALL)
+    return [(ftype.strip() if ftype else 'no-type', block.strip()) for ftype, block in matches]
+
+
+def extract_code_blocks(text) -> str:
+    pattern = r"```(?:\w+\s+)?(.*?)```"
+    matches = re.findall(pattern, text, re.DOTALL)
+    return [block.strip() for block in matches]
+
 
 
 if __name__ == "__main__":
