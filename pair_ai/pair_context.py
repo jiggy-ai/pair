@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel
 from openai_models import ChatCompletionMessage
-
+from typing import List
 
 class FileContent(BaseModel):
     filename:  str

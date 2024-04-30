@@ -4,16 +4,13 @@ import json
 from pydantic import BaseModel, ValidationError, Field, validator
 from time import time
 import os
-from openai import AsyncOpenAI
+from openai import OpenAI, RateLimitError, BadRequestError
 from findfilt import find_files
 from openai_models import ChatCompletionMessage, CompletionRequest
 
 PAIR_MODEL = os.environ.get('PAIR_MODEL', 'gpt-4-turbo-2024-04-09')
 
 client = OpenAI()
-
-DUMP_JSON = os.environ.get("EXTRACT_DATACLASS_DUMP_JSON", True)
-
 
 
 
@@ -51,7 +48,7 @@ def price(model, input_tokens, output_tokens):
 
 def completions(messages       : List[ChatCompletionMessage],
                 model          : str = 'gpt-4-turbo-2024-04-09',
-                temperature    : float = 0) -> str:
+                temperature    : float = 0):
 
     """
     return tuple of (delta, response, done):  
@@ -59,31 +56,32 @@ def completions(messages       : List[ChatCompletionMessage],
     response is the cumulative response text,
     and done is True if the completion is complete
     """
-    cr = ChatResponse(text            = "",
-                      delta           = "",
-                      model           = model,
-                      temperature     = temperature,
-                      inputs          = messages,
-                      input_tokens    = 0,   #  sum([msg.tokens for msg in msgs]) + 2 , # XXX calculate tokesn
-                      response_tokens = 0,
-                      price           = 0)
+    resp = ChatResponse(text            = "",
+                         delta           = "",
+                         model           = model,
+                         temperature     = temperature,
+                         inputs          = messages,
+                         input_tokens    = 0,   #  sum([msg.tokens for msg in msgs]) + 2 , # XXX calculate tokesn
+                         response_tokens = 0,
+                         price           = 0)
 
-    cr = CompletionRequest(model=model, messages=messages, temperature=temperature, stream=True)
-    
+    creq = CompletionRequest(model=model, messages=messages, temperature=temperature, stream=True)
+
+    #print(creq.json(indent=4))
     try:
-        response = openai.chat.completions.create(**cr.dict())
+        response = client.chat.completions.create(**creq.dict())
 
         for chunk in response:
             output = chunk.choices[0].delta.content or ''
             if output:
-                cr.delta = output
-                cr.text += output
-                yield cr
+                resp.delta = output
+                resp.text += output
+                yield resp
 
-    except openai.RateLimitError as e:   
+    except RateLimitError as e:   
         logger.warning(f"OpenAI RateLimitError: {e}")
         raise
-    except openai.BadRequestError as e: # too many token
+    except BadRequestError as e: # too many token
         logger.error(f"OpenAI BadRequestError: {e}")
         raise
     except Exception as e:
@@ -91,5 +89,5 @@ def completions(messages       : List[ChatCompletionMessage],
         raise
     response_tokens = 0 ### calculate tokens
     #cr.price = price(model, cr.input_tokens, resp_msg.tokens)
-    yield cr
+    yield resp
 

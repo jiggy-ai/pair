@@ -1,7 +1,6 @@
 import openai
 import os
 import sys
-from chatstack import ChatContext, UserMessage
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import Completer, Completion, PathCompleter, NestedCompleter, WordCompleter
 from prompt_toolkit.key_binding import KeyBindings
@@ -11,37 +10,19 @@ from prompt_toolkit import print_formatted_text
 import re
 import subprocess
 import argparse
-from .context_loader import load_files_and_urls
-from .extract import url_to_text, extract_filename_code_blocks
+from extract import url_to_text, extract_filename_code_blocks
 import random
 import string
 import datetime
 import shutil
-
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-
-
-BASE_PROMPT =  "You are a programming assistant. "
-BASE_PROMPT += "Below are portions of code the user is working on as well as questions from the user. "
-BASE_PROMPT += "Provide helpful answers to the user. If you need more information on code that is not included, "
-BASE_PROMPT += "then ask for the contents of the code file or show the user how to cat the file. "
-BASE_PROMPT += "When generating example code that takes an input file, have the main code take the filename as a command line argument. "
-BASE_PROMPT += "When outputing code blocks, please include a filename before the code block in markdown bold like **filename.py** .  "
-BASE_PROMPT += "When making changes to files, please output the entire file unless the file is very large. "
-BASE_PROMPT += "If the file is too large to output in its entirety, please be sure to include 3 lines before and after each edit. "
-
+from pair_state import PAIR
+from gpt_wrapper import completions
 
 
 PAIR_MODEL = os.environ.get("PAIR_MODEL", "gpt-4")
 print("PAIR_MODEL =", PAIR_MODEL)
 
-chat_ctx = ChatContext(min_response_tokens=800,  # leave room for at least this much
-                       max_response_tokens=None, # don't limit the model's responses
-                       chat_context_messages=20,
-                       model=PAIR_MODEL,
-                       temperature=0.1,
-                       base_system_msg_text=BASE_PROMPT)
+
     
 def print_help():
     print("Available commands:")
@@ -52,16 +33,13 @@ def print_help():
     print("/help - Display this help message")
     
 
-parser = argparse.ArgumentParser(description="Load files and URLs into the context")
-parser.add_argument("items", nargs="*", help="List of files and URLs to load into the context")
-args = parser.parse_args()
-load_files_and_urls(chat_ctx, args.items)
+
+pair_ctx = PAIR()
 
 
-
-
-
-
+for fn in sys.argv[1:]:
+    if os.path.isfile(fn):
+        pair_ctx.add_file(fn)
 
 
 def repl():
@@ -101,13 +79,7 @@ def repl():
         if user_input.startswith('/file'):
             file_path = user_input[6:].strip()
             try:
-                with open(file_path, 'r') as file:
-                    user_code =  file.read()
-                    user_input = f'{file_path}:\n{user_code}\n'
-                    msg = UserMessage(text=user_input)
-                    chat_ctx.add_message(msg)
-                    print(f"Loaded {file_path} into context ({msg.tokens} tokens)")
-                    continue
+                pair_ctx.add_file(file_path)
             except FileNotFoundError:
                 print(f"File not found: {file_path}")
                 continue
@@ -136,36 +108,27 @@ def repl():
              try:
                  content, title, language = url_to_text(url)
                  user_input = f'{url}:\n{content}\n'
-                 msg = UserMessage(text=user_input)
-                 chat_ctx.add_message(msg)
-                 print(content)
-                 print(f"Loaded {url} into context ({msg.tokens} tokens)")
+                 pair_ctx.add_message(user_input)
+                 print(user_input)
                  continue
              except Exception as e:
                  print(f"Error fetching URL: {e}")
                  continue
         # Check for the special /status command
         elif user_input.startswith('/status'):
-            api_key_status = "set" if openai.api_key else "not set"
-            model_name = chat_ctx.model
-            try:
-                openai.Model.retrieve(model_name)
-                model_status = "available"
-            except Exception as e:
-                model_status = f"unavailable ({e})"
-
-            print(f"OPENAI_API_KEY: {api_key_status}")
-            print(f"Model: {model_name} ({model_status})")
             continue  # Add this line to skip processing the /status command as a user input for assistance
         # Check for the special /help command
         elif user_input.startswith('/help'):
             print_help()
             continue  # Add this line to skip processing the /help command as a user input for assistance            
-        
+
+        pair_ctx.add_user_msg(user_input)
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
-        for cr in chat_ctx.user_message_stream(user_input):
+        for cr in completions(messages=pair_ctx.messages(), model=PAIR_MODEL):
             sys.stdout.write(cr.delta)
             sys.stdout.flush()
+
+        pair_ctx.add_assistant_msg(cr.text)
         
         print_formatted_text(FormattedText([("fg:olive", f"\n({cr.input_tokens} + {cr.response_tokens} tokens = ${cr.price:.4f})  ")]))
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
