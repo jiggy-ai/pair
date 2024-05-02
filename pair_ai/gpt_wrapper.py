@@ -65,11 +65,11 @@ def completions(messages       : List[ChatCompletionMessage],
                          response_tokens = 0,
                          price           = 0)
 
-    creq = CompletionRequest(model=model, messages=messages, temperature=temperature, stream=True)
+    creq = CompletionRequest(model=model, messages=messages, temperature=temperature, max_tokens=2048, stream=True)
 
     #print(creq.json(indent=4))
     try:
-        response = client.chat.completions.create(**creq.dict())
+        response = client.chat.completions.create(**creq.dict(exclude_none=True))
 
         for chunk in response:
             output = chunk.choices[0].delta.content or ''

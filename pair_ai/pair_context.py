@@ -50,6 +50,6 @@ class PairContext(BaseModel):
             messages += f.messages()
 
         # add the chat messages to the end
-        return messages + self.chat_messages[:10]  
+        return messages + self.chat_messages
 
         

@@ -17,6 +17,7 @@ import datetime
 import shutil
 from pair_state import PAIR
 from gpt_wrapper import completions
+import mimetypes
 
 
 PAIR_MODEL = os.environ.get("PAIR_MODEL", "gpt-4")
@@ -34,12 +35,15 @@ def print_help():
     
 
 
-pair_ctx = PAIR()
+pair_state = PAIR()
 
 
 for fn in sys.argv[1:]:
     if os.path.isfile(fn):
-        pair_ctx.add_file(fn)
+        if mimetypes.guess_type(fn)[0] in ["image/png", "image/jpeg"]:
+            pair_state.add_user_image_msg(fn)
+        else:
+            pair_state.add_file(fn)
 
 
 def repl():
@@ -79,7 +83,7 @@ def repl():
         if user_input.startswith('/file'):
             file_path = user_input[6:].strip()
             try:
-                pair_ctx.add_file(file_path)
+                pair_state.add_file(file_path)
             except FileNotFoundError:
                 print(f"File not found: {file_path}")
                 continue
@@ -108,7 +112,7 @@ def repl():
              try:
                  content, title, language = url_to_text(url)
                  user_input = f'{url}:\n{content}\n'
-                 pair_ctx.add_message(user_input)
+                 pair_state.add_message(user_input)
                  print(user_input)
                  continue
              except Exception as e:
@@ -122,13 +126,13 @@ def repl():
             print_help()
             continue  # Add this line to skip processing the /help command as a user input for assistance            
 
-        pair_ctx.add_user_msg(user_input)
+        pair_state.add_user_msg(user_input)
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
-        for cr in completions(messages=pair_ctx.messages(), model=PAIR_MODEL):
+        for cr in completions(messages=pair_state.messages(), model=PAIR_MODEL):
             sys.stdout.write(cr.delta)
             sys.stdout.flush()
 
-        pair_ctx.add_assistant_msg(cr.text)
+        pair_state.add_assistant_msg(cr.text)
         
         print_formatted_text(FormattedText([("fg:olive", f"\n({cr.input_tokens} + {cr.response_tokens} tokens = ${cr.price:.4f})  ")]))
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")

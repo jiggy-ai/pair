@@ -3,8 +3,9 @@
 
 from pydantic import BaseModel
 from typing import List
-from openai_models import ChatCompletionMessage
+from openai_models import ChatCompletionMessage, MessageContent, ImageUrl
 from findfilt import find_files
+from image_to_data_url import image_to_data_url
 
 from pair_context import  PairContext, FileContent
 
@@ -26,6 +27,11 @@ class PAIR:
                                       content = msg)
         self.chat_messages.append(ccmsg)
 
+    def add_user_image_msg(self, img_path : str):
+        image_url = ImageUrl(url=image_to_data_url(img_path), detail='high')        
+        ccmsg = ChatCompletionMessage(role    = 'user',
+                                      content = [MessageContent(type='image_url', image_url=image_url)])
+        self.chat_messages.append(ccmsg)
         
     def add_assistant_msg(self, msg : str):
         ccmsg = ChatCompletionMessage(role    = 'assistant',
