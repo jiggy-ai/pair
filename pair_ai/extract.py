@@ -14,6 +14,7 @@ from typing import List, Optional, Tuple
 from pdf_text import pdf_text
 from exceptions import *
 from retry import retry
+import os
     
 user_agent = "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 
@@ -100,7 +101,7 @@ def url_to_text(url):
 
 
 class CodeBlock(BaseModel):
-    filename: str
+    filename: Optional[str]
     code: str
     type: str
     

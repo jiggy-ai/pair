@@ -5,7 +5,7 @@ from findfilt import find_files
 from image_to_data_url import image_to_data_url
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
-
+import os
 from pair_context import  PairContext, FileContent
 
 
@@ -16,7 +16,10 @@ class PAIR:
         self.project_files = []
         self.chat_messages = []
         self.project_mode = True
-        
+
+    def reset_files(self):
+        self.project_files = []
+
     def disable_project_mode(self):
         self.project_files = []
         self.project_mode = False
@@ -42,6 +45,8 @@ class PAIR:
                                       content = msg)
         self.chat_messages.append(ccmsg)
         
+    def remove_last_message(self):
+        self.chat_messages.pop()
         
     def messages(self) -> List[ChatCompletionMessage]:
         if self.project_mode:
@@ -55,4 +60,5 @@ class PAIR:
         return PairContext(project_files = find_files(),
                            file_contents = file_contents,
                            chat_messages = self.chat_messages).messages()
+
 

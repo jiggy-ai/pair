@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import openai
 import os
 import sys
 from prompt_toolkit import PromptSession
@@ -9,18 +8,14 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit import print_formatted_text
-import re
-import subprocess
-import argparse
 from extract import url_to_text, extract_filename_code_blocks
-import random
-import string
 import datetime
 import shutil
 from pair_state import PAIR
-from gpt_wrapper import completions
+from gpt_wrapper import completions, extract_dataclass
 import mimetypes
-
+from pair_context import  FilesContext, FileList
+from findfilt import find_files
 
 PAIR_MODEL = os.environ.get("PAIR_MODEL", "gpt-4")
 print("PAIR_MODEL =", PAIR_MODEL)
@@ -30,9 +25,7 @@ print("PAIR_MODEL =", PAIR_MODEL)
 def print_help():
     print("Available commands:")
     print("/file <path> - Load a file into the context")
-    print("/cd <path> - Change the current working directory")
     print("/url <url> - Load the content of a URL into the context")
-    print("/status - Show the status of the OPENAI_API_KEY and the model being used")
     print("/help - Display this help message")
     
 
@@ -90,11 +83,16 @@ def save_code_blocks(code_blocks):
 
 
 
+def validate_filelist(filelist, content):
+    for fn in filelist.filenames:
+        if not os.path.exists(fn):
+            raise ValueError(f"File {fn} not found")
+    
 def repl():
     path_completer = PathCompleter(only_directories=False, expanduser=True)
     custom_completer = NestedCompleter.from_nested_dict({
         '/file': path_completer,
-        '/cd': path_completer,
+        '/clear_files': None,
         '/url': WordCompleter(['http://', 'https://']),
     })
 
@@ -137,19 +135,10 @@ def repl():
             except Exception as e:
                 print(f"Unexpected error: {e}")
                 continue
-        # Check for the special /cd command
-        elif user_input.startswith('/cd'):
-            dir_path = user_input[4:].strip()
-            try:
-                os.chdir(os.path.expanduser(dir_path))
-                print(f"Changed directory to: {os.getcwd()}")
-            except FileNotFoundError:
-                print(f"Directory not found: {dir_path}")
-                continue
-            except NotADirectoryError:
-                print(f"Not a directory: {dir_path}")
-                continue
-            continue  # Add this line to skip processing the /cd command as a user input for assistance         
+        elif user_input.startswith('/clear_files'):
+            pair_state.reset_files()
+            print_formatted_text(FormattedText([("fg:violet", "Cleared files from context")]))
+            continue
         # Check for the special /url command
         elif user_input.startswith('/url'):
              url = user_input[5:].strip()
@@ -162,20 +151,33 @@ def repl():
              except Exception as e:
                  print(f"Error fetching URL: {e}")
                  continue
-        # Check for the special /status command
-        elif user_input.startswith('/status'):
-            continue  # Add this line to skip processing the /status command as a user input for assistance
+    
         # Check for the special /help command
         elif user_input.startswith('/help'):
             print_help()
             continue  # Add this line to skip processing the /help command as a user input for assistance            
 
         pair_state.add_user_msg(user_input)
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
-        for cr in completions(messages=pair_state.messages(), model=PAIR_MODEL):
-            sys.stdout.write(cr.delta)
-            sys.stdout.flush()
 
+        if pair_state.project_mode:
+            # get set of files we need to complete the task
+            filelist = extract_dataclass(FilesContext(project_files = find_files(), 
+                                                    chat_messages = pair_state.chat_messages).messages(),
+                                         FileList,
+                                         task_validator=validate_filelist)
+            for fn in filelist.filenames:
+                pair_state.add_file(fn)
+                                    
+        
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
+        try:
+            for cr in completions(messages=pair_state.messages(), model=PAIR_MODEL):
+                sys.stdout.write(cr.delta)
+                sys.stdout.flush()
+        except KeyboardInterrupt:
+            pair_state.remove_last_message()
+            print_formatted_text(FormattedText([("fg:violet", "\n\nInterrupted; your last message and model response were not added to conversation state...")]))
+            continue
         pair_state.add_assistant_msg(cr.text)
         
         print_formatted_text(FormattedText([("fg:olive", f"\n({cr.input_tokens} + {cr.response_tokens} tokens = ${cr.price:.4f})  ")]))
@@ -184,10 +186,14 @@ def repl():
         # extract code blocks from completion text along with filename
         if pair_state.project_mode:
             # extract code blocks from completion text along with filename
-            code_blocks = extract_filename_code_blocks(cr.text)
+            code_blocks = extract_filename_code_blocks(cr.text)            
             save_code_blocks(code_blocks)
+            # add files to project state
+            for cb in code_blocks:
+                if cb.filename:
+                    pair_state.add_file(cb.filename)
                 
-
+        
 
 
 if __name__ == "__main__":

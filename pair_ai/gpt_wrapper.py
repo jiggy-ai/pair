@@ -118,9 +118,8 @@ def completions(messages       : List[ChatCompletionMessage],
                          response_tokens = 0,
                          price           = 0)
 
-    creq = CompletionRequest(model=model, messages=messages, temperature=temperature, max_tokens=2048, stream=True)
+    creq = CompletionRequest(model=model, messages=messages, temperature=temperature, stream=True)
         
-    #print(creq.json(indent=4))
     try:
         response = client.chat.completions.create(**creq.dict(exclude_none=True))
 
@@ -143,4 +142,73 @@ def completions(messages       : List[ChatCompletionMessage],
     resp.response_tokens = len(enc.encode(resp.text))
     resp.price = price(model, resp.input_tokens, resp.response_tokens)
     yield resp
+
+
+ValidatorFunctionType = Callable[[BaseModel, str], None]
+
+def extract_dataclass(messages       : List[ChatCompletionMessage],
+                            data_model     : BaseModel,                 
+                            retry          : int = 3,
+                            model          : str = 'gpt-4-turbo-2024-04-09',
+                            temperature    : float = 0,                            
+                            task_validator : Optional[ValidatorFunctionType] = None) -> BaseModel:
+
+    ts = int(time()*1000)    
+    logger.info(f"extract_dataclass: data_model={data_model.__name__} dump timestamp = {ts}")
+    
+    pydantic_instruction  = "Please respond ONLY with raw valid json that conforms to this pydantic json_schema:\n" 
+    pydantic_instruction += f" {data_model.schema_json()} \n" 
+    pydantic_instruction += "Do not include additional text other than the object json as we will load this object with json.loads() and pydantic."
+    messages.append(ChatCompletionMessage(role="system", content=pydantic_instruction))
+        
+    last_exception = None        
+    for i in range(retry+1):
+          
+        cr = CompletionRequest(model=model, messages=messages, temperature=temperature, stream=False)      
+            
+        response = client.chat.completions.create(**cr.dict())
+        assistant_message = response.choices[0].message
+        content = assistant_message.content
+
+        if content.startswith("```json"):
+            content = content[7:-3]  # just get the json content without hassling the model about it
+            
+        try:
+            json_content = json.loads(content)
+        except Exception as e:
+            last_exception = e
+            error_msg = f"json.loads exception: {e}"
+            logger.error(error_msg)
+            messages.append(assistant_message)
+            messages.append({"role"   : "system",
+                            "content" : error_msg})
+            continue
+  
+        try:
+            data_model =  data_model(**json_content)
+        except ValidationError as e:
+            last_exception = e
+            error_msg = f"pydantic exception: {e}"
+            logger.warning(error_msg)
+            messages.append(assistant_message)
+            messages.append({"role"   : "system",
+                            "content" : error_msg})
+            continue
+                
+        if task_validator:
+            try:
+                task_validator(data_model, content)
+            except ValidationError as e:
+                last_exception = e
+                error_msg = f"validation exception: {e}"
+                logger.warning(error_msg)
+                messages.append(assistant_message)            
+                messages.append({"role"    : "system",
+                                 "content" : error_msg})
+        logger.info(data_model.json())
+        return data_model
+    # end retry loop
+    logger.error(f"Failed to extract dataclass after {retry} attempts")
+    raise last_exception
+
 
