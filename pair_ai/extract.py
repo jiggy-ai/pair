@@ -9,9 +9,8 @@ import requests
 import urllib.parse
 import json
 import re
-
-
-from github_api import github_readme_text
+from pydantic import BaseModel
+from typing import List, Optional, Tuple
 from pdf_text import pdf_text
 from exceptions import *
 from retry import retry
@@ -39,7 +38,7 @@ def get_language(html):
     except:
         return ""
 
-@retry(tries=5)    
+#@retry(tries=5)    
 def get_url_text(url):
     """
     get url content and extract readable text
@@ -87,31 +86,39 @@ def url_to_text(url):
         raise UnsupportedHostException("Unsupported host: {urllib.parse.urlparse(url).netloc}")
 
     if urllib.parse.urlparse(url).netloc == 'github.com':
-        # for github repos use api to attempt to find a readme file
-        text, title = github_readme_text(url)
-        language = 'en'  # XXX  dynamically determine language
-    else:
-        text, title, language = get_url_text(url)
+        url += "?raw=true"
+        resp = requests.get(url)
+        if resp.status_code != 200:
+            logger.warning(url)
+            raise NetworkError(f"Unable to get URL ({resp.status_code})")        
+        return resp.content, "", ""
+    
+    text, title, language = get_url_text(url)
 
-    #logger.debug("url_to_text: "+text)
     return text, title, language
 
 
 
-
-def extract_filename_code_blocks(text):
+class CodeBlock(BaseModel):
+    filename: str
+    code: str
+    type: str
+    
+def extract_filename_code_blocks(text) -> List[CodeBlock]:
     #pattern = r"(?:\*\*(\S+)\*\*|##\s*(\S+))?\s*```(\w+)?(?:\s+)?(.*?)```"
     pattern = r"(?:\*\*(\S+)\*\*:?|##\s*(\S+))?\s*```(\w+)?(?:\s+)?(.*?)```"
     matches = re.findall(pattern, text, re.DOTALL)
     
-    # Generate tuples (filename, code_block, file_type), handling filename preprocessing
+    # filename, code_block, file_type; handling filename preprocessing
     results = []
     for match in matches:
         # Normalizing filename: match[0] is **filename.ext**, match[1] is ## filename.ext
         filename = match[0] or match[1] or None
+        characters_to_strip = ' \t\n\r\f\v\'"'
+        filename = filename.strip(characters_to_strip) if filename is not None else None
         file_type = match[2] if match[2] is not None else 'unknown'  # Set 'unknown' if no file type specified
         code_block = match[3].strip()
-        results.append((filename, code_block, file_type))
+        results.append(CodeBlock(filename=filename, code=code_block, type=file_type))
     
     return results
 

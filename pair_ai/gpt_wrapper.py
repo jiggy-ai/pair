@@ -7,13 +7,19 @@ import os
 from openai import OpenAI, RateLimitError, BadRequestError
 from findfilt import find_files
 from openai_models import ChatCompletionMessage, CompletionRequest
+from PIL import Image
+from typing import Tuple
+import tiktoken
+import io 
+import base64
 
 PAIR_MODEL = os.environ.get('PAIR_MODEL', 'gpt-4-turbo-2024-04-09')
 
 client = OpenAI()
 
+enc = tiktoken.get_encoding("cl100k_base")
 
-
+    
 class ChatResponse(BaseModel):
     """
     contains the complete state of the input context as sent to the model as well as the response from the model
@@ -46,6 +52,53 @@ def price(model, input_tokens, output_tokens):
 
 
 
+def gpt4_high_image_tokens_from_url(url: str) -> int:
+
+    # url is of the form data:{mime_type};base64,{encoded_image}
+    mime_type, encoded_image = url.split(';base64,')
+    #decode the base64 encoded image
+    image = base64.b64decode(encoded_image)            
+    
+    with Image.open(io.BytesIO(image)) as img:
+        width, height = img.size
+
+    max_dim = max(width, height)
+    if max_dim > 2048:
+        ratio = 2048 / max_dim
+    width = int(width * ratio)
+    height = int(height * ratio)
+
+    min_dim = min(width, height)
+    # scale minimum to 768
+    ratio = 768 / min_dim
+    width = int(width * ratio)
+    height = int(height * ratio)
+
+    # calculate number of 512x512 tiles, rounding up
+    x_tiles = (width + 511) // 512
+    y_tiles = (height + 511) // 512
+    
+    # 85 tokens plus 170 tokens per 512x512 tile
+    return 85 + 170 * x_tiles * y_tiles 
+
+
+def message_tokens(msg: ChatCompletionMessage) -> int:
+    if type(msg.content) == str:
+        _text = f'{msg.role}\n{msg.content}'
+        return len(enc.encode(msg.content)) + 4
+
+    assert type(msg.content) == list
+    tokens = len(enc.encode(msg.role+"\n")) + 4    
+    for mc in msg.content:
+        if mc.type == 'text':
+            tokens += len(enc.encode(mc.text)) 
+        elif mc.type == 'image_url':
+            tokens += gpt4_high_image_tokens_from_url(mc.image_url.url)
+        else:
+            raise ValueError(f"unknown message content type {mc.type}")
+    return tokens
+
+
 def completions(messages       : List[ChatCompletionMessage],
                 model          : str = 'gpt-4-turbo-2024-04-09',
                 temperature    : float = 0):
@@ -61,12 +114,12 @@ def completions(messages       : List[ChatCompletionMessage],
                          model           = model,
                          temperature     = temperature,
                          inputs          = messages,
-                         input_tokens    = 0,   #  sum([msg.tokens for msg in msgs]) + 2 , # XXX calculate tokesn
+                         input_tokens    = sum([message_tokens(m) for m in messages]) + 2, 
                          response_tokens = 0,
                          price           = 0)
 
     creq = CompletionRequest(model=model, messages=messages, temperature=temperature, max_tokens=2048, stream=True)
-
+        
     #print(creq.json(indent=4))
     try:
         response = client.chat.completions.create(**creq.dict(exclude_none=True))
@@ -87,7 +140,7 @@ def completions(messages       : List[ChatCompletionMessage],
     except Exception as e:
         logger.exception(e)
         raise
-    response_tokens = 0 ### calculate tokens
-    #cr.price = price(model, cr.input_tokens, resp_msg.tokens)
+    resp.response_tokens = len(enc.encode(resp.text))
+    resp.price = price(model, resp.input_tokens, resp.response_tokens)
     yield resp
 

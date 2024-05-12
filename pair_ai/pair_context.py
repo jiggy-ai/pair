@@ -3,6 +3,7 @@
 from pydantic import BaseModel
 from openai_models import ChatCompletionMessage
 from typing import List
+import mimetypes
 
 class FileContent(BaseModel):
     filename:  str
@@ -20,7 +21,6 @@ class PairContext(BaseModel):
     file_contents : List[FileContent]    
     chat_messages : List[ChatCompletionMessage]
 
-
     def messages(self) -> List[ChatCompletionMessage]:
 
         BASE_PROMPT =  "You are a programming assistant. "
@@ -29,9 +29,9 @@ class PairContext(BaseModel):
         BASE_PROMPT += "ask for the contents of the code file or show the user how to cat the file in question. "
         BASE_PROMPT += "When generating example code that takes an input file, arrange the main code to take the filename as a command line argument. "
         BASE_PROMPT += "When outputing code blocks, please include a filename before the code block in markdown bold like **filename.py** .  "
-        BASE_PROMPT += "When making edits to existing files, please output the entire file unless the file is very large. "
-        BASE_PROMPT += "If the file is too large to output in its entirety, please be sure to include 3 lines before and after each edit. "
-
+        BASE_PROMPT += "When making edits to existing files, output a context diff of the changes."
+        BASE_PROMPT += "If you need to see the contents of a file to perform a task, use a code block with contents 'cat filename'. "
+        
         messages  = [ChatCompletionMessage(role='system', content=BASE_PROMPT)]
 
         # introduce the project files

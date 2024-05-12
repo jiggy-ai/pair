@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import openai
 import os
 import sys
@@ -38,12 +40,54 @@ def print_help():
 pair_state = PAIR()
 
 
-for fn in sys.argv[1:]:
-    if os.path.isfile(fn):
+for arg in sys.argv[1:]:
+    if arg == "-p":
+        pair_state.disable_project_mode()
+        print("Disabling project mode: local file listing will not be loaded into model context & output files will not be saved to disk")
+        continue
+    if os.path.isfile(arg):
+        fn = arg
         if mimetypes.guess_type(fn)[0] in ["image/png", "image/jpeg"]:
             pair_state.add_user_image_msg(fn)
         else:
             pair_state.add_file(fn)
+            
+
+            
+def save_code_blocks(code_blocks):
+    """
+    save code blocks to files
+    """
+    skipped = 0
+    for cb in code_blocks:
+        if cb.filename is None:
+            ## consider saving unnamed code snippets
+            skipped += 1
+            continue
+        
+        if os.path.exists(cb.filename):
+            if os.path.getsize(cb.filename) > len(cb.code):
+                # new content is smaller than old content, so don't overwrite
+                cb.filename += ".edit"
+            else:
+                # will overwrite
+                # create backup of original file
+                dtstr = datetime.datetime.now().strftime("%Y%m%d_%H%MS")
+                shutil.copy2(cb.filename, cb.filename + f'.pair-{dtstr}')
+
+        if '/' in cb.filename:
+            # brutally create directories that dont already exist
+            os.makedirs("/".join(cb.filename.split('/')[:-1]), exist_ok=True)
+        try:
+            with open(cb.filename, 'w') as fp:
+                fp.write(cb.code)
+                print_formatted_text(FormattedText([ ("fg:violet", "extracted "), ("fg:chocolate", cb.type), 
+                                                    ("fg:violet", " block as "), ("fg:chocolate", cb.filename) ]))
+        except Exception as e:
+            print_formatted_text(FormattedText([ ("fg:violet", "error extracting filename")]))
+    if skipped:
+        print_formatted_text(FormattedText([ ("fg:violet", f"skipped unnamed code snippet{'s' if skipped > 1 else ''}")]))
+
 
 
 def repl():
@@ -112,7 +156,7 @@ def repl():
              try:
                  content, title, language = url_to_text(url)
                  user_input = f'{url}:\n{content}\n'
-                 pair_state.add_message(user_input)
+                 pair_state.add_user_msg(user_input)
                  print(user_input)
                  continue
              except Exception as e:
@@ -138,37 +182,10 @@ def repl():
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ")
 
         # extract code blocks from completion text along with filename
-        filename_code_blocks = extract_filename_code_blocks(cr.text)
-        skipped = 0
-        for filename, codeblock, filetype in filename_code_blocks:
-            if filename is None:
-                ## consider saving unnamed code snippets
-                skipped += 1
-                continue
-            
-            if os.path.exists(filename):
-                if os.path.getsize(filename) > len(codeblock):
-                    # new content is smaller than old content, so don't overwrite
-                    filename += ".edit"
-                else:
-                    # will overwrite
-                    # create backup of original file
-                    dtstr = datetime.datetime.now().strftime("%Y%m%d_%H%MS")
-                    shutil.copy2(filename, filename + f'.pair-{dtstr}')
-
-            if '/' in filename:
-                # brutally create directories that dont already exist
-                os.makedirs("/".join(filename.split('/')[:-1]), exist_ok=True)
-            try:
-                with open(filename, 'w') as fp:
-                    fp.write(codeblock)
-                    print_formatted_text(FormattedText([ ("fg:violet", "extracted "), ("fg:chocolate", filetype), 
-                                                         ("fg:violet", " block as "), ("fg:chocolate", filename) ]))
-            except Exception as e:
-                print_formatted_text(FormattedText([ ("fg:violet", "error extracting filename")]))
-        if skipped:
-            print_formatted_text(FormattedText([ ("fg:violet", f"skipped unnamed code snippet{'s' if skipped > 1 else ''}")]))
-                
+        if pair_state.project_mode:
+            # extract code blocks from completion text along with filename
+            code_blocks = extract_filename_code_blocks(cr.text)
+            save_code_blocks(code_blocks)
                 
 
 
