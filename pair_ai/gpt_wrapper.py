@@ -13,7 +13,7 @@ import tiktoken
 import io 
 import base64
 
-PAIR_MODEL = os.environ.get('PAIR_MODEL', 'gpt-4-turbo-2024-04-09')
+PAIR_MODEL = os.environ.get('PAIR_MODEL', 'gpt-4o')
 
 client = OpenAI()
 
@@ -44,8 +44,10 @@ def price(model, input_tokens, output_tokens):
         dollars = 0.002 * tokens / 1000
     elif model == 'gpt-4':
         dollars =  (.03*input_tokens + .06*output_tokens) / 1000
-    elif model in ['gpt-4-1106-preview', 'gpt-4-turbo-2024-04-09']:
+    elif model in ['gpt-4-1106-preview', 'gpt-4-turbo-2024-04-09', 'gpt-4-turbo']:
         dollars =  (.01*input_tokens + .03*output_tokens) / 1000
+    elif model in ['gpt-4o']:
+        dollars =  (5*input_tokens + 15*output_tokens) / 1e6
     else:
         raise ValueError(f"model {model} not supported")
     return dollars
@@ -63,6 +65,8 @@ def gpt4_high_image_tokens_from_url(url: str) -> int:
         width, height = img.size
 
     max_dim = max(width, height)
+
+    ratio = 1
     if max_dim > 2048:
         ratio = 2048 / max_dim
     width = int(width * ratio)
@@ -119,7 +123,7 @@ def completions(messages       : List[ChatCompletionMessage],
                          price           = 0)
 
     creq = CompletionRequest(model=model, messages=messages, temperature=temperature, stream=True)
-        
+    #print(creq.json(exclude_none=True, indent=4))
     try:
         response = client.chat.completions.create(**creq.dict(exclude_none=True))
 
@@ -147,11 +151,11 @@ def completions(messages       : List[ChatCompletionMessage],
 ValidatorFunctionType = Callable[[BaseModel, str], None]
 
 def extract_dataclass(messages       : List[ChatCompletionMessage],
-                            data_model     : BaseModel,                 
-                            retry          : int = 3,
-                            model          : str = 'gpt-4-turbo-2024-04-09',
-                            temperature    : float = 0,                            
-                            task_validator : Optional[ValidatorFunctionType] = None) -> BaseModel:
+                      data_model     : BaseModel,                 
+                      retry          : int = 3,
+                      model          : str = 'gpt-4-turbo-2024-04-09',
+                      temperature    : float = 0,                            
+                      task_validator : Optional[ValidatorFunctionType] = None) -> BaseModel:
 
     ts = int(time()*1000)    
     logger.info(f"extract_dataclass: data_model={data_model.__name__} dump timestamp = {ts}")
@@ -166,7 +170,7 @@ def extract_dataclass(messages       : List[ChatCompletionMessage],
           
         cr = CompletionRequest(model=model, messages=messages, temperature=temperature, stream=False)      
             
-        response = client.chat.completions.create(**cr.dict())
+        response = client.chat.completions.create(**cr.dict(exclude_none=True))
         assistant_message = response.choices[0].message
         content = assistant_message.content
 

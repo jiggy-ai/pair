@@ -16,6 +16,8 @@ from gpt_wrapper import completions, extract_dataclass
 import mimetypes
 from pair_context import  FilesContext, FileList
 from findfilt import find_files
+from apply_patch import apply_patch
+from pair_context import FileContent
 
 PAIR_MODEL = os.environ.get("PAIR_MODEL", "gpt-4")
 print("PAIR_MODEL =", PAIR_MODEL)
@@ -61,7 +63,10 @@ def save_code_blocks(code_blocks):
         if os.path.exists(cb.filename):
             if os.path.getsize(cb.filename) > len(cb.code):
                 # new content is smaller than old content, so don't overwrite
-                cb.filename += ".edit"
+                #cb.filename += ".edit"
+                msg = f"error processing {cb.filename}: file exists and new content is smaller than old content. Output the full new file content or a context diff of the changes so we can patch the file."
+                print_formatted_text(FormattedText([ ("fg:violet", msg)]))
+                continue
             else:
                 # will overwrite
                 # create backup of original file
@@ -126,6 +131,7 @@ def repl():
             file_path = user_input[6:].strip()
             try:
                 pair_state.add_file(file_path)
+                continue
             except FileNotFoundError:
                 print(f"File not found: {file_path}")
                 continue
@@ -162,7 +168,8 @@ def repl():
         if pair_state.project_mode:
             # get set of files we need to complete the task
             filelist = extract_dataclass(FilesContext(project_files = find_files(), 
-                                                    chat_messages = pair_state.chat_messages).messages(),
+                                                      file_contents=[FileContent(filename=fn, content=open(fn,'r').read()) for fn in list(pair_state.project_files)],
+                                                      chat_messages = pair_state.chat_messages).messages(),
                                          FileList,
                                          task_validator=validate_filelist)
             for fn in filelist.filenames:
@@ -190,8 +197,15 @@ def repl():
             save_code_blocks(code_blocks)
             # add files to project state
             for cb in code_blocks:
-                if cb.filename:
-                    pair_state.add_file(cb.filename)
+                if cb.filename:                    
+                    if cb.filename.endswith('.diff'):
+                        try:
+                            apply_patch(cb.filename)    
+                        except RuntimeError as e:
+                            print_formatted_text(FormattedText([ ("fg:violet", f"Error applying patch to {cb.filename}:\n{e}\n")])) 
+                        os.unlink(cb.filename)                                                
+                    else:
+                        pair_state.add_file(cb.filename)
                 
         
 

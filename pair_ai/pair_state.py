@@ -13,20 +13,20 @@ from pair_context import  PairContext, FileContent
 class PAIR:
 
     def __init__(self):
-        self.project_files = []
+        self.project_files = set()
         self.chat_messages = []
         self.project_mode = True
 
     def reset_files(self):
-        self.project_files = []
+        self.project_files = set()
 
     def disable_project_mode(self):
-        self.project_files = []
+        self.project_files = set()
         self.project_mode = False
         
     def add_file(self, filepath : str):
         print_formatted_text(FormattedText([ ("fg:violet", f'Added {filepath} to context')]))
-        self.project_files.append(filepath)
+        self.project_files.add(filepath)
 
     def add_user_msg(self, msg : str):
         ccmsg = ChatCompletionMessage(role    = 'user',
@@ -49,15 +49,12 @@ class PAIR:
         self.chat_messages.pop()
         
     def messages(self) -> List[ChatCompletionMessage]:
-        if self.project_mode:
-            file_contents = [FileContent(filename=fn, content=open(fn,'r').read()) for fn in self.project_files]
-        else:
-            file_contents = []
+        file_contents = [FileContent(filename=fn, content=open(fn,'r').read()) for fn in list(self.project_files)]
 
         for fc in file_contents:
             print_formatted_text(FormattedText([ ("fg:violet", f'Loaded {fc.filename} to context')]))        
     
-        return PairContext(project_files = find_files(),
+        return PairContext(project_files = find_files() if self.project_mode else "",
                            file_contents = file_contents,
                            chat_messages = self.chat_messages).messages()
 
